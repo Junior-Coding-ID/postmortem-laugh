@@ -1,34 +1,37 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-// The Postmortem That Made Us Laugh — entry text (2 sentences, 169 chars).
+// Jawaban v2 — hasil super-analisa, dipakai persis, jangan diubah.
 const ENTRY =
-  "You asked me to test webhook retries, so I generated a new event ID for each replay and charged the same customer 19 times. Our first subscription product was a toaster.";
+  "I asked our coding agent to confirm before deleting projects; it showed the dialog after the server deleted them. Cancel was for emotional closure.";
 
-// Exact length verified by hand-count via `wc -m` before writing this file.
-const EXPECTED_LENGTH = 169;
-const MAX_LENGTH = 400;
-
-function main(): void {
-  const length = [...ENTRY].length;
-  if (length !== EXPECTED_LENGTH) {
-    throw new Error(
-      `Entry length mismatch: expected ${EXPECTED_LENGTH} characters, got ${length}.`,
-    );
-  }
-  if (length < 1 || length > MAX_LENGTH) {
-    throw new Error(
-      `Entry length ${length} is outside the allowed 1-${MAX_LENGTH} characters.`,
-    );
-  }
-  if (ENTRY.trim().length === 0) {
-    throw new Error("Entry must not be only whitespace.");
-  }
-
-  const outDir = "/output";
-  mkdirSync(outDir, { recursive: true });
-  writeFileSync(join(outDir, "entry.txt"), ENTRY, "utf8");
-  console.log(`Wrote entry.txt (${length} characters).`);
+// Guard panjang eksak: 147 karakter, rentang brief 1-400.
+if (ENTRY.length !== 147) {
+  throw new Error(`Panjang entry salah: ${ENTRY.length}, harus 147 karakter.`);
+}
+if (ENTRY.length < 1 || ENTRY.length > 400) {
+  throw new Error(`Panjang entry di luar rentang 1-400: ${ENTRY.length}.`);
+}
+if (ENTRY.trim().length === 0) {
+  throw new Error("Entry tidak boleh hanya whitespace.");
 }
 
-main();
+// Guard tepat 2 kalimat: dua kalimat yang diakhiri titik.
+const sentences = ENTRY.split(".")
+  .map((s) => s.trim())
+  .filter((s) => s.length > 0);
+if (sentences.length !== 2) {
+  throw new Error(`Jumlah kalimat salah: ${sentences.length}, harus 2.`);
+}
+if (!ENTRY.endsWith(".")) {
+  throw new Error("Entry harus diakhiri titik.");
+}
+
+// Tulis entry ke /output/entry.txt (path absolut sesuai harness make.fun).
+const outPath = "/output/entry.txt";
+mkdirSync(dirname(outPath), { recursive: true });
+writeFileSync(outPath, ENTRY, "utf8");
+
+console.log(`OK: entry ditulis ke ${outPath} (${ENTRY.length} karakter, 2 kalimat).`);
+console.log(ENTRY);
