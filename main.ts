@@ -1,37 +1,53 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-// Jawaban v2 — hasil super-analisa, dipakai persis, jangan diubah.
 const ENTRY =
-  "I asked our coding agent to confirm before deleting projects; it showed the dialog after the server deleted them. Cancel was for emotional closure.";
+  "I asked our coding agent to add ON DELETE CASCADE for GDPR erasure; it cascaded every foreign key referencing users, including accounts.onboarded_by. When our first support rep quit and invoked the right to be forgotten, we forgot two years of customers.";
 
-// Guard panjang eksak: 147 karakter, rentang brief 1-400.
-if (ENTRY.length !== 147) {
-  throw new Error(`Panjang entry salah: ${ENTRY.length}, harus 147 karakter.`);
+// Guard panjang eksak: jawaban v3 harus tepat 254 karakter.
+if (ENTRY.length !== 254) {
+  throw new Error(`ENTRY length must be exactly 254, got ${ENTRY.length}`);
 }
+
+// Guard rentang resmi: 1-400 karakter, bukan hanya whitespace.
 if (ENTRY.length < 1 || ENTRY.length > 400) {
-  throw new Error(`Panjang entry di luar rentang 1-400: ${ENTRY.length}.`);
+  throw new Error(`ENTRY length out of range 1-400: ${ENTRY.length}`);
 }
 if (ENTRY.trim().length === 0) {
-  throw new Error("Entry tidak boleh hanya whitespace.");
+  throw new Error("ENTRY must not be only whitespace");
 }
 
-// Guard tepat 2 kalimat: dua kalimat yang diakhiri titik.
-const sentences = ENTRY.split(".")
-  .map((s) => s.trim())
-  .filter((s) => s.length > 0);
-if (sentences.length !== 2) {
-  throw new Error(`Jumlah kalimat salah: ${sentences.length}, harus 2.`);
+// Guard single-line: tolak newline / carriage return.
+if (ENTRY.includes("\n") || ENTRY.includes("\r")) {
+  throw new Error("ENTRY must be a single line");
 }
+
+// Guard entry diakhiri titik.
 if (!ENTRY.endsWith(".")) {
-  throw new Error("Entry harus diakhiri titik.");
+  throw new Error("ENTRY must end with a period");
 }
 
-// Tulis entry ke /output/entry.txt (path absolut sesuai harness make.fun).
-const outPath = "/output/entry.txt";
-mkdirSync(dirname(outPath), { recursive: true });
-writeFileSync(outPath, ENTRY, "utf8");
+// Pemecah kalimat yang benar: titik di tengah kata seperti
+// "accounts.onboarded_by" BUKAN akhir kalimat, jadi jangan split(".").
+// Split hanya pada titik diikuti spasi + huruf kapital (awal kalimat baru).
+const sentences = ENTRY.split(/\.\s+(?=[A-Z])/);
+if (sentences.length !== 2) {
+  throw new Error(`ENTRY must have exactly 2 sentences, got ${sentences.length}`);
+}
+for (const s of sentences) {
+  if (s.trim().length === 0) {
+    throw new Error("ENTRY contains an empty sentence");
+  }
+}
 
-console.log(`OK: entry ditulis ke ${outPath} (${ENTRY.length} karakter, 2 kalimat).`);
-console.log(ENTRY);
+// Tulis entry ke <out>/entry.txt — path output WAJIB dari
+// process.env.MAKEFUN_OUTPUT ?? "/output" (grader /bot read-only).
+const outDir = process.env.MAKEFUN_OUTPUT ?? "/output";
+mkdirSync(outDir, { recursive: true });
+writeFileSync(join(outDir, "entry.txt"), ENTRY, "utf8");
+// Verifikasi pasca-tulis: baca balik dan pastikan byte-identik dengan ENTRY.
+const written = readFileSync(join(outDir, "entry.txt"), "utf8");
+if (written !== ENTRY) {
+  throw new Error("entry.txt does not match ENTRY after write");
+}
+console.log(`Wrote ${join(outDir, "entry.txt")} (${ENTRY.length} chars, ${sentences.length} sentences)`);
