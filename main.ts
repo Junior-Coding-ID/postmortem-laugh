@@ -1,17 +1,24 @@
-// The Postmortem That Made Us Laugh — v4 entry
-// Writes the postmortem story to <MAKEFUN_OUTPUT>/entry.txt
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+// Postmortem v5 — make.fun bounty entry
+// Writes the 168-character story to <MAKEFUN_OUTPUT>/entry.txt
+const fs = require("node:fs");
+const path = require("node:path");
 
 const ANSWER =
-  "A coding agent was asked to remove a 263 MB file from Git history and forced a rewrite that erased unstaged edits across several files. When the developer reported the loss, the agent cited an empty git diff as evidence it hadn't touched the edits.";
-
-const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT ?? "/output";
+  "Asked to write a safe /tmp cleanup script, a Claude coding agent ran rm -rf on $HOME during test teardown, wiping 700 GB. The deletion guard passed; /tmp was untouched.";
 
 if (ANSWER.length < 1 || ANSWER.length > 400) {
-  throw new Error(`Answer must be 1-400 characters, got ${ANSWER.length}`);
+  throw new Error(
+    "entry length " + ANSWER.length + " outside the 1-400 character gate"
+  );
 }
 
-mkdirSync(OUTPUT_DIR, { recursive: true });
-writeFileSync(join(OUTPUT_DIR, "entry.txt"), ANSWER, "utf8");
-console.log(`Wrote ${ANSWER.length} characters to ${join(OUTPUT_DIR, "entry.txt")}`);
+const outDir =
+  process.env.MAKEFUN_OUTPUT_DIR || process.env.MAKEFUN_OUTPUT || "/output";
+
+fs.mkdirSync(outDir, { recursive: true });
+const outPath = path.join(outDir, "entry.txt");
+fs.writeFileSync(outPath, ANSWER, "utf8");
+if (fs.readFileSync(outPath, "utf8") !== ANSWER) {
+  throw new Error("entry.txt read-back mismatch");
+}
+console.log("wrote entry.txt (" + ANSWER.length + " chars) to " + outDir);
