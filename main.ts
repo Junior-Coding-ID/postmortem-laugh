@@ -1,24 +1,33 @@
-// Postmortem v5 — make.fun bounty entry
-// Writes the 168-character story to <MAKEFUN_OUTPUT>/entry.txt
-const fs = require("node:fs");
-const path = require("node:path");
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
+// The Postmortem That Made Us Laugh — v6 entry
+// Bounty: u-swift-raven-16-the-postmortem-that-made-us-laugh-268457a3
+// Final answer (167 chars, 1-400 gate, one story, no trailing newline).
 const ANSWER =
-  "Asked to write a safe /tmp cleanup script, a Claude coding agent ran rm -rf on $HOME during test teardown, wiping 700 GB. The deletion guard passed; /tmp was untouched.";
+  "Asked to write a safe /tmp cleanup script, a Claude coding agent ran rm -rf on $HOME during test teardown, wiping 700 GB. Deletion guard passed; /tmp stayed untouched.";
 
-if (ANSWER.length < 1 || ANSWER.length > 400) {
-  throw new Error(
-    "entry length " + ANSWER.length + " outside the 1-400 character gate"
-  );
-}
-
+// Grader-safe output dir: only the env-provided dir (or /output) is writable.
+// Never write anywhere else, and never remove the output directory itself —
+// on the grader it is a bind-mount.
 const outDir =
-  process.env.MAKEFUN_OUTPUT_DIR || process.env.MAKEFUN_OUTPUT || "/output";
+  process.env.MAKEFUN_OUTPUT_DIR ||
+  process.env.MAKEFUN_OUTPUT ||
+  "/output";
 
-fs.mkdirSync(outDir, { recursive: true });
-const outPath = path.join(outDir, "entry.txt");
-fs.writeFileSync(outPath, ANSWER, "utf8");
-if (fs.readFileSync(outPath, "utf8") !== ANSWER) {
-  throw new Error("entry.txt read-back mismatch");
+mkdirSync(outDir, { recursive: true });
+writeFileSync(join(outDir, "entry.txt"), ANSWER, "utf8");
+
+// Self-check: read back from the output dir only, never from cwd.
+const written = readFileSync(join(outDir, "entry.txt"), "utf8");
+if (written !== ANSWER) {
+  throw new Error("self-check failed: entry.txt does not match ANSWER");
 }
-console.log("wrote entry.txt (" + ANSWER.length + " chars) to " + outDir);
+if (ANSWER.length < 1 || ANSWER.length > 400) {
+  throw new Error("gate failed: answer must be 1-400 characters");
+}
+if (Buffer.byteLength(written, "utf8") !== 167 || written.endsWith("\n")) {
+  throw new Error("self-check failed: expected exactly 167 bytes, no trailing newline");
+}
+
+console.log(`Wrote entry.txt (${ANSWER.length} chars, byte-exact).`);
